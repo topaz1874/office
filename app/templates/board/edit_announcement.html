@@ -12,7 +12,7 @@
                 <h3>编辑公告</h3>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="title" class="form-label">标题</label>
                         <input type="text" class="form-control" id="title" name="title" value="{{ announcement.title }}" required>
@@ -28,6 +28,19 @@
                     <div class="mb-3">
                         <label for="content" class="form-label">公告内容</label>
                         <textarea class="form-control" id="content" name="content" rows="10" required>{{ announcement.content }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attachment" class="form-label">附件</label>
+                        <input type="file" class="form-control" id="attachment" name="attachment">
+                        <div class="form-text">
+                            支持的文件类型: PDF, Word, Excel, PowerPoint, TXT
+                            {% if announcement.attachment_filename %}
+                            <br>当前附件: {{ announcement.attachment_filename }}
+                            <a href="{{ url_for('board.get_attachment', id=announcement.id, download=1) }}" class="text-decoration-none">
+                                <i class="bi bi-download"></i> 下载
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">保存修改</button>
                 </form>

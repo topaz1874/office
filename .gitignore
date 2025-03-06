@@ -6,3 +6,5 @@ app.db
 migrations/
 update_data.py
 data/
+database/
+backup/

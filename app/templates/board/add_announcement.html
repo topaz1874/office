@@ -12,7 +12,7 @@
                 <h3>添加公告</h3>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="title" class="form-label">标题</label>
                         <input type="text" class="form-control" id="title" name="title" required>
@@ -28,6 +28,11 @@
                     <div class="mb-3">
                         <label for="content" class="form-label">公告内容</label>
                         <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attachment" class="form-label">附件</label>
+                        <input type="file" class="form-control" id="attachment" name="attachment">
+                        <div class="form-text">支持的文件类型: PDF, Word, Excel, PowerPoint, TXT</div>
                     </div>
                     <button type="submit" class="btn btn-primary">发布公告</button>
                 </form>

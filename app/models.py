@@ -30,5 +30,10 @@ class Announcement(db.Model):
     author = db.Column(db.String(100), nullable=True)
     is_important = db.Column(db.Boolean, default=False)  # 重要公告标记
     
+    # 添加附件字段
+    attachment_filename = db.Column(db.String(255), nullable=True)  # 原始文件名
+    attachment_path = db.Column(db.String(255), nullable=True)  # 存储路径
+    attachment_type = db.Column(db.String(50), nullable=True)  # 文件类型
+    
     def __repr__(self):
         return f'<Announcement {self.id}: {self.title}>' 
