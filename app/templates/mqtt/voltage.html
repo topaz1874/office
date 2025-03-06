@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    .volume-container {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .volume-bars {
+        display: flex;
+        justify-content: space-between;
+        height: 300px;
+        align-items: flex-end;
+    }
+    .volume-bar {
+        width: 50px;
+        background-color: #6c757d; /* 灰色作为默认颜色 */
+        margin: 0 10px;
+        transition: height 0.3s ease;
+        position: relative;
+        border-radius: 3px 3px 0 0;
+    }
+    .volume-bar-label {
+        position: absolute;
+        bottom: -25px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 12px;
+    }
+    .volume-value {
+        position: absolute;
+        top: -25px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 12px;
+    }
+    .status-indicator {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .status-connected {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .refresh-rate {
+        font-size: 14px;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">&larr; 返回首页</a>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>电压监控</h3>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span id="status-indicator" class="status-indicator status-disconnected">
+                            <i class="bi bi-x-circle"></i> 未连接
+                        </span>
+                        <span class="ms-3 refresh-rate">刷新频率: 1秒</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetZoom()">
+                            <i class="bi bi-arrows-angle-contract"></i> 重置缩放
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="volume-container">
+                    <div class="volume-bars" id="volume-bars">
+                        <!-- 音量柱将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>原始数据</h5>
+                            </div>
+                            <div class="card-body">
+                                <pre id="raw-data">等待数据...</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>连接信息</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>MQTT代理:</strong> {{ '192.168.1.59' }}</p>
+                                <p><strong>主题:</strong> {{ 'voltage' }}</p>
+                                <p><strong>最后更新:</strong> <span id="last-update">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 初始化变量
+    let maxValue = 127; // 最大值
+    let zoomFactor = 1; // 缩放因子
+    const barContainer = document.getElementById('volume-bars');
+    const rawDataDisplay = document.getElementById('raw-data');
+    const statusIndicator = document.getElementById('status-indicator');
+    const lastUpdateDisplay = document.getElementById('last-update');
+    
+    // 创建音量柱
+    function createVolumeBars() {
+        barContainer.innerHTML = '';
+        // 创建8个音量柱（有效通道）
+        for (let i = 0; i < 8; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'volume-bar';
+            bar.style.height = '0px';
+            
+            const label = document.createElement('div');
+            label.className = 'volume-bar-label';
+            label.textContent = `通道 ${i+1}`;
+            bar.appendChild(label);
+            
+            const value = document.createElement('div');
+            value.className = 'volume-value';
+            value.textContent = '0';
+            bar.appendChild(value);
+            
+            barContainer.appendChild(bar);
+        }
+    }
+    
+    // 更新音量柱
+    function updateVolumeBars(values) {
+        const bars = barContainer.querySelectorAll('.volume-bar');
+        const valueDisplays = barContainer.querySelectorAll('.volume-value');
+        
+        // 处理前8个值（有效通道）
+        for (let index = 0; index < 8; index++) {
+            const value = values[index];
+            if (index < bars.length) {
+                // 计算高度百分比（考虑缩放因子）
+                const heightPercent = (value / maxValue) * 100 * zoomFactor;
+                // 限制最大高度为100%
+                const cappedHeight = Math.min(heightPercent, 100);
+                bars[index].style.height = `${cappedHeight}%`;
+                valueDisplays[index].textContent = value;
+                
+                // 根据值的大小改变颜色
+                if (value < maxValue * 0.3) {
+                    bars[index].style.backgroundColor = '#DC3545'; // 红色（低值）
+                } else if (value < maxValue * 0.7) {
+                    bars[index].style.backgroundColor = '#FFC107'; // 黄色（中值）
+                } else {
+                    bars[index].style.backgroundColor = '#4CAF50'; // 绿色（高值）
+                }
+            }
+        }
+    }
+    
+    // 重置缩放
+    function resetZoom() {
+        zoomFactor = 1;
+        fetchData(); // 立即更新显示
+    }
+    
+    // 获取数据
+    function fetchData() {
+        fetch('/mqtt/voltage/data')
+            .then(response => response.json())
+            .then(data => {
+                // 更新音量柱
+                updateVolumeBars(data.values);
+                
+                // 更新原始数据显示
+                rawDataDisplay.textContent = JSON.stringify(data.values, null, 2);
+                
+                // 更新状态指示器
+                if (data.status === 'ok') {
+                    statusIndicator.className = 'status-indicator status-connected';
+                    statusIndicator.innerHTML = '<i class="bi bi-check-circle"></i> 已连接';
+                    
+                    // 更新最后更新时间
+                    const date = new Date(data.timestamp * 1000);
+                    lastUpdateDisplay.textContent = date.toLocaleString();
+                } else {
+                    statusIndicator.className = 'status-indicator status-disconnected';
+                    statusIndicator.innerHTML = '<i class="bi bi-x-circle"></i> 未连接';
+                }
+            })
+            .catch(error => {
+                console.error('获取数据失败:', error);
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusIndicator.innerHTML = '<i class="bi bi-x-circle"></i> 连接错误';
+            });
+    }
+    
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 创建音量柱
+        createVolumeBars();
+        
+        // 立即获取一次数据
+        fetchData();
+        
+        // 设置定时获取数据（每秒一次）
+        setInterval(fetchData, 1000);
+        
+        // 添加鼠标滚轮事件用于缩放
+        barContainer.addEventListener('wheel', function(event) {
+            event.preventDefault();
+            
+            // 根据滚轮方向调整缩放因子
+            if (event.deltaY < 0) {
+                // 向上滚动，放大
+                zoomFactor *= 1.1;
+            } else {
+                // 向下滚动，缩小
+                zoomFactor *= 0.9;
+            }
+            
+            // 限制缩放范围
+            zoomFactor = Math.max(0.5, Math.min(zoomFactor, 5));
+            
+            // 更新显示
+            fetchData();
+        });
+    });
+</script>
+{% endblock %} 

@@ -21,6 +21,7 @@
   - **友好的错误处理**：自定义404页面和错误跳转
   - **系统日志查看**：管理员可查看系统运行日志
   - **README文档在线查看**：系统使用说明随时可查
+  - **MQTT数据监控**：实时监控电压数据，以音量柱形式动态显示
 
 - **响应式设计**：适配各种设备屏幕
 
@@ -29,6 +30,7 @@
 - **后端**：Flask + SQLAlchemy + Flask-Migrate
 - **前端**：Bootstrap 5 + Jinja2模板 + Bootstrap Icons
 - **数据处理**：Pandas (用于CSV处理)
+- **通信协议**：MQTT (用于实时数据监控)
 - **部署**：Docker + Gunicorn
 
 ## 安装与运行
@@ -146,6 +148,18 @@
    docker-compose restart web
    ```
 
+4. **数据库迁移**
+   ```
+   # 生成迁移脚本（在修改模型后执行）
+   docker-compose exec web flask db migrate -m "描述更改的消息"
+   
+   # 应用迁移
+   docker-compose exec web flask db upgrade
+   
+   # 回滚迁移
+   docker-compose exec web flask db downgrade
+   ```
+
 ### 系统维护
 
 1. **重新构建容器**
@@ -217,4 +231,8 @@
 
 1. **查看系统日志**：访问`/log`页面（仅管理员可用）
 2. **查看系统说明**：访问`/readme`页面
-3. **错误处理**：访问不存在的页面时会显示友好的错误页面 
+3. **错误处理**：访问不存在的页面时会显示友好的错误页面
+4. **电压监控**：访问`/mqtt/voltage`页面，查看实时电压数据
+   - 支持音量柱动态显示
+   - 支持鼠标滚轮缩放
+   - 根据电压值大小自动变色（低值红色-中值黄色-高值绿色） 

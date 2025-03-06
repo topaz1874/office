@@ -6,6 +6,7 @@ import os
 import markdown
 import logging
 from logging.handlers import RotatingFileHandler
+import threading
 
 migrate = Migrate()
 
@@ -35,6 +36,13 @@ def create_app(config_class=Config):
     
     from app.blueprints.board import bp as board_bp
     app.register_blueprint(board_bp, url_prefix='/board')
+    
+    from app.blueprints.mqtt import bp as mqtt_bp
+    app.register_blueprint(mqtt_bp, url_prefix='/mqtt')
+    
+    # 启动MQTT客户端
+    from app.blueprints.mqtt.routes import start_mqtt_client
+    threading.Thread(target=start_mqtt_client, args=(app,), daemon=True).start()
     
     # 注册主页路由
     @app.route('/')
@@ -84,6 +92,7 @@ def create_app(config_class=Config):
                 <div class="links">
                     <a href="/oa">办公系统</a>
                     <a href="/board">公告栏</a>
+                    <a href="/mqtt/voltage">电压监控</a>
                     <a href="/readme">系统说明</a>
                 </div>
             </div>
