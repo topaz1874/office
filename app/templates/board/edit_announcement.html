@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{{ url_for('board.announcement_detail', id=announcement.id) }}" class="btn btn-secondary">&larr; 返回公告详情</a>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>编辑公告</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">标题</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ announcement.title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="author" class="form-label">发布人</label>
+                        <input type="text" class="form-control" id="author" name="author" value="{{ announcement.author }}">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_important" name="is_important" {% if announcement.is_important %}checked{% endif %}>
+                        <label class="form-check-label" for="is_important">标记为重要公告</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">公告内容</label>
+                        <textarea class="form-control" id="content" name="content" rows="10" required>{{ announcement.content }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

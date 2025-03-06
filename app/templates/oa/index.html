@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>办公系统</h2>
+            </div>
+            <div class="card-body">
+                <p>欢迎使用办公自动化系统。</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    <a href="{{ url_for('oa.documents') }}" class="btn btn-primary">查看文档列表</a>
+                    <a href="{{ url_for('oa.upload_documents') }}" class="btn btn-success">上传文档</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>最近文档</h4>
+            </div>
+            <div class="card-body">
+                {% if documents %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>登记时间</th>
+                                <th>文号</th>
+                                <th>标题</th>
+                                <th>来源单位</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>{{ doc.register_time.strftime('%Y-%m-%d') if doc.register_time else '-' }}</td>
+                                <td>{{ doc.doc_number }}</td>
+                                <td>{{ doc.title }}</td>
+                                <td>{{ doc.source_unit }}</td>
+                                <td>
+                                    <a href="{{ url_for('oa.document_detail', id=doc.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>暂无文档记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

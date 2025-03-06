@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{{ url_for('oa.documents') }}" class="btn btn-secondary">&larr; 返回文档列表</a>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>上传文档</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">选择CSV文件</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                        <div class="form-text">请上传CSV格式的文档数据文件。</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="alert alert-info">
+                            <h5>CSV文件要求:</h5>
+                            <ul>
+                                <li>CSV文件必须包含以下列: 登记时间, 文号, 标题</li>
+                                <li>其他可选列: 来文单位, 原文号, 密级, 移交部门, 业务类型, 跟踪/公文状态</li>
+                                <li>文件应使用UTF-8或GBK编码</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">上传</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

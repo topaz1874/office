@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    /* 自定义选项卡样式 */
+    .nav-tabs .nav-link {
+        color: #495057;
+        background-color: #e8f5e9; /* 浅绿色背景 */
+        border: 1px solid #c8e6c9; /* 浅绿色边框 */
+        margin-right: 5px;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #2e7d32; /* 深绿色文字 */
+        background-color: #c8e6c9; /* 稍深的浅绿色背景 */
+        border-color: #a5d6a7; /* 稍深的浅绿色边框 */
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #fff;
+        background-color: #4CAF50; /* 主题绿色 */
+        border-color: #4CAF50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2>文档列表</h2>
+                <div>
+                    <a href="{{ url_for('oa.upload_documents') }}" class="btn btn-success">上传文档</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- 年份选项卡 -->
+                <div class="mb-4">
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link {% if not selected_year or selected_year == 'all' %}active{% endif %}" 
+                               href="{{ url_for('oa.documents', search=search, per_page=per_page) }}">全部</a>
+                        </li>
+                        {% for year in available_years %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if selected_year == year|string %}active{% endif %}" 
+                               href="{{ url_for('oa.documents', year=year, search=search, per_page=per_page) }}">{{ year }}年</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <!-- 搜索和每页显示行数 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <form action="{{ url_for('oa.documents') }}" method="get" class="d-flex">
+                            <input type="text" name="search" class="form-control me-2" placeholder="搜索标题..." value="{{ search }}">
+                            {% if selected_year %}
+                            <input type="hidden" name="year" value="{{ selected_year }}">
+                            {% endif %}
+                            <input type="hidden" name="per_page" value="{{ per_page }}">
+                            <button type="submit" class="btn btn-primary">搜索</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-inline-block">
+                            <label for="per_page" class="form-label me-2">每页显示:</label>
+                            <select id="per_page" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="changePerPage(this.value)">
+                                {% for option in per_page_options %}
+                                <option value="{{ option }}" {% if per_page == option %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if pagination.items %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>登记时间</th>
+                                <th>文号</th>
+                                <th>标题</th>
+                                <th>来源单位</th>
+                                <th>密级</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in pagination.items %}
+                            <tr>
+                                <td>{{ doc.register_time.strftime('%Y-%m-%d') if doc.register_time else '-' }}</td>
+                                <td>{{ doc.doc_number }}</td>
+                                <td>{{ doc.title }}</td>
+                                <td>{{ doc.source_unit }}</td>
+                                <td>{{ doc.security_level }}</td>
+                                <td>
+                                    <a href="{{ url_for('oa.document_detail', id=doc.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页 -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('oa.documents', page=pagination.prev_num, search=search, year=selected_year, per_page=per_page) }}">上一页</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">上一页</span>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                            {% if page_num %}
+                                {% if page_num == pagination.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('oa.documents', page=page_num, search=search, year=selected_year, per_page=per_page) }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('oa.documents', page=pagination.next_num, search=search, year=selected_year, per_page=per_page) }}">下一页</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">下一页</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">显示 {{ pagination.total }} 条记录中的 
+                        {{ (pagination.page - 1) * pagination.per_page + 1 }} 
+                        至 
+                        {% if pagination.page * pagination.per_page < pagination.total %}
+                            {{ pagination.page * pagination.per_page }}
+                        {% else %}
+                            {{ pagination.total }}
+                        {% endif %} 条
+                    </small>
+                </div>
+                
+                {% else %}
+                <div class="alert alert-info">
+                    没有找到匹配的文档
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function changePerPage(value) {
+        // 获取当前URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 更新每页显示行数参数
+        urlParams.set('per_page', value);
+        
+        // 重置页码为1
+        urlParams.set('page', 1);
+        
+        // 重定向到新URL
+        window.location.href = '{{ url_for("oa.documents") }}?' + urlParams.toString();
+    }
+</script>
+{% endblock %} 

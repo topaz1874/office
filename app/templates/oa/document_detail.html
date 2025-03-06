@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <a href="{{ url_for('oa.documents') }}" class="btn btn-secondary">&larr; 返回文档列表</a>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ document.title }}</h3>
+                <div class="text-muted">
+                    登记时间: {{ document.register_time.strftime('%Y-%m-%d') if document.register_time else '-' }}
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-2">文号:</dt>
+                    <dd class="col-sm-10">{{ document.doc_number }}</dd>
+
+                    <dt class="col-sm-2">来文单位:</dt>
+                    <dd class="col-sm-10">{{ document.source_unit or '-' }}</dd>
+
+                    <dt class="col-sm-2">原文号:</dt>
+                    <dd class="col-sm-10">{{ document.original_number or '-' }}</dd>
+
+                    <dt class="col-sm-2">密级:</dt>
+                    <dd class="col-sm-10">{{ document.security_level or '-' }}</dd>
+
+                    <dt class="col-sm-2">移交部门:</dt>
+                    <dd class="col-sm-10">{{ document.transfer_dept or '-' }}</dd>
+
+                    <dt class="col-sm-2">业务类型:</dt>
+                    <dd class="col-sm-10">{{ document.business_type or '-' }}</dd>
+
+                    <dt class="col-sm-2">状态:</dt>
+                    <dd class="col-sm-10">{{ document.tracking or '-' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

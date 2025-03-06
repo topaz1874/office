@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:5000"
+    volumes:
+      - ./data:/app/data
+      - ./app/static/uploads:/app/app/static/uploads
+      - ./database:/app/database
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=0
+      - PYTHONPATH=/app
+      - SECRET_KEY=your-secret-key-here
+    restart: always 
