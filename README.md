@@ -257,11 +257,84 @@ curl -sSL https://get.docker.com | sh
 
 # 将当前用户添加到docker组（免sudo运行docker）
 sudo usermod -aG docker $USER
+```
 
-# 安装Docker Compose
+### 3. 配置Docker国内镜像源
+
+为了加快Docker镜像拉取速度，强烈建议配置Docker国内镜像源：
+
+```bash
+# 创建或修改daemon.json文件
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://mirror.baidubce.com",
+    "https://mirrors.ustc.edu.cn/dockerhub/",
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com"
+  ]
+}
+EOF
+
+# 重启Docker服务
+sudo systemctl restart docker
+```
+
+验证镜像是否配置成功：
+
+```bash
+# 查看Docker信息，确认registry-mirrors已经生效
+docker info | grep "Registry Mirrors" -A 5
+```
+
+如果您使用的是Docker Compose，还可以在`docker-compose.yml`文件中直接指定镜像源：
+
+```yaml
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      args:
+        # 使用国内PyPI镜像源
+        PIP_INDEX_URL: https://mirrors.aliyun.com/pypi/simple/
+        PIP_TRUSTED_HOST: mirrors.aliyun.com
+    # 其他配置...
+```
+
+安装Docker Compose（如果遇到`externally-managed-environment`错误，请使用以下方法之一）：
+
+**方法1：使用apt安装（推荐）**
+```bash
+sudo apt-get update
+sudo apt-get install -y docker-compose
+```
+
+**方法2：使用Python虚拟环境**
+```bash
+# 安装Python虚拟环境
+sudo apt-get update
+sudo apt-get install -y python3-venv
+
+# 创建虚拟环境
+python3 -m venv ~/docker-compose-env
+
+# 激活虚拟环境
+source ~/docker-compose-env/bin/activate
+
+# 在虚拟环境中安装docker-compose
+pip install docker-compose
+
+# 创建符号链接使docker-compose全局可用
+sudo ln -s ~/docker-compose-env/bin/docker-compose /usr/local/bin/docker-compose
+```
+
+**方法3：使用--break-system-packages参数（不推荐）**
+```bash
 sudo apt-get update
 sudo apt-get install -y python3-pip
-sudo pip3 install docker-compose
+sudo pip3 install docker-compose --break-system-packages
 ```
 
 安装完成后重启树莓派：
@@ -270,7 +343,7 @@ sudo pip3 install docker-compose
 sudo reboot
 ```
 
-### 3. 配置Git国内镜像源
+### 4. 配置Git国内镜像源
 
 为了加快代码克隆和更新速度，建议配置Git国内镜像源：
 
@@ -293,15 +366,17 @@ git config --global url."https://mirrors.ustc.edu.cn/".insteadOf "https://"
 git clone https://gitee.com/yourusername/pro_office.git
 ```
 
-### 4. 获取项目代码
+### 5. 获取项目代码
 
 ```bash
 # 克隆项目代码
 git clone https://github.com/yourusername/pro_office.git
+git clone https://ghfast.top/https://github.com/topaz1874/office.git
+
 cd pro_office
 ```
 
-### 5. 修改MQTT配置
+### 6. 修改MQTT配置
 
 编辑`app/blueprints/mqtt/routes.py`文件，将MQTT代理地址修改为您局域网中MQTT服务器的地址：
 
@@ -312,21 +387,21 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "voltage"
 ```
 
-### 6. 构建和启动容器
+### 7. 构建和启动容器
 
 ```bash
 # 构建并启动容器
 docker-compose up -d
 ```
 
-### 7. 初始化数据库
+### 8. 初始化数据库
 
 ```bash
 # 初始化数据库
 docker-compose exec web python /app/init_db.py
 ```
 
-### 8. 访问系统
+### 9. 访问系统
 
 现在您可以通过树莓派的IP地址和端口访问系统：
 
@@ -336,7 +411,7 @@ http://树莓派IP:5000
 
 例如：`http://192.168.1.xxx:5000`
 
-### 9. 设置开机自启动
+### 10. 设置开机自启动
 
 创建systemd服务文件：
 
@@ -370,9 +445,591 @@ sudo systemctl enable pro-office.service
 sudo systemctl start pro-office.service
 ```
 
-### 10. 故障排除
+### 11. 故障排除
 
 - 如果无法访问系统，请检查树莓派防火墙设置，确保5000端口已开放
 - 检查Docker容器状态：`docker-compose ps`
 - 查看日志：`docker-compose logs -f web`
-- 如果树莓派资源有限，可以修改`docker-compose.yml`文件，减少容器的资源限制 
+- 如果树莓派资源有限，可以修改`docker-compose.yml`文件，减少容器的资源限制
+
+#### Docker服务启动失败问题
+
+如果遇到Docker服务无法启动的问题（例如日志中显示"docker.service: Failed with result 'exit-code'"），请尝试以下解决方法：
+
+1. **检查Docker配置文件**
+
+   首先检查Docker配置文件是否有语法错误：
+   
+   ```bash
+   sudo cat /etc/docker/daemon.json
+   ```
+   
+   确保JSON格式正确，没有多余的逗号或引号。
+
+2. **修复配置文件**
+
+   如果配置文件有问题，可以重新创建：
+   
+   ```bash
+   # 备份原配置文件
+   sudo mv /etc/docker/daemon.json /etc/docker/daemon.json.bak
+   
+   # 创建新的配置文件
+   sudo tee /etc/docker/daemon.json <<-'EOF'
+   {
+     "registry-mirrors": [
+       "https://mirror.baidubce.com"
+     ]
+   }
+   EOF
+   ```
+   
+   先使用最简单的配置，确保Docker能够启动。
+
+3. **重置Docker服务**
+
+   ```bash
+   # 停止Docker服务
+   sudo systemctl stop docker
+   
+   # 重置Docker服务状态
+   sudo systemctl reset-failed docker.service
+   
+   # 启动Docker服务
+   sudo systemctl start docker
+   
+   # 查看Docker服务状态
+   sudo systemctl status docker
+   ```
+
+4. **检查系统日志**
+
+   如果Docker仍然无法启动，查看详细日志：
+   
+   ```bash
+   # 查看Docker服务日志
+   sudo journalctl -u docker.service --no-pager
+   
+   # 或者查看最近的系统日志
+   sudo dmesg | tail -n 50
+   ```
+
+5. **检查存储空间**
+
+   确保系统有足够的存储空间：
+   
+   ```bash
+   df -h
+   ```
+   
+   如果存储空间不足，清理一些不需要的文件。
+
+6. **重新安装Docker**
+
+   如果以上方法都不能解决问题，可以尝试重新安装Docker：
+   
+   ```bash
+   # 卸载Docker
+   sudo apt-get purge docker-ce docker-ce-cli containerd.io
+   
+   # 删除Docker数据目录
+   sudo rm -rf /var/lib/docker
+   
+   # 重新安装Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   ```
+
+#### Docker Compose连接错误问题
+
+如果在使用Docker Compose时遇到类似以下错误：
+
+```
+OSError: [Errno 5] Input/output error
+urllib3.exceptions.ProtocolError: ('Connection aborted.', OSError(5, 'Input/output error'))
+requests.exceptions.ConnectionError: ('Connection aborted.', OSError(5, 'Input/output error'))
+```
+
+这通常是由于Docker守护进程通信问题或资源限制导致的，请尝试以下解决方法：
+
+1. **重启Docker服务**
+
+   ```bash
+   sudo systemctl restart docker
+   ```
+
+2. **增加树莓派的交换空间**
+
+   如果是内存不足导致的问题，可以增加交换空间：
+   
+   ```bash
+   # 检查当前交换空间
+   free -h
+   
+   # 增加交换空间（例如增加到2GB）
+   sudo dphys-swapfile swapoff
+   sudo nano /etc/dphys-swapfile
+   # 修改CONF_SWAPSIZE=2048
+   sudo dphys-swapfile setup
+   sudo dphys-swapfile swapon
+   ```
+
+3. **检查并修复Docker套接字权限**
+
+   ```bash
+   # 确保当前用户在docker组中
+   sudo usermod -aG docker $USER
+   
+   # 修复套接字权限
+   sudo chmod 666 /var/run/docker.sock
+   ```
+
+4. **使用较低版本的Docker Compose**
+
+   有时较新版本的Docker Compose在树莓派上可能不稳定：
+   
+   ```bash
+   # 卸载当前版本
+   sudo apt-get remove docker-compose
+   
+   # 安装特定版本
+   sudo pip3 install docker-compose==1.29.2 --break-system-packages
+   ```
+
+5. **检查存储设备健康状况**
+
+   SD卡或USB存储设备问题也可能导致I/O错误：
+   
+   ```bash
+   # 检查磁盘健康状况
+   sudo apt-get install smartmontools
+   sudo smartctl -a /dev/mmcblk0  # 对于SD卡
+   
+   # 检查文件系统错误
+   sudo fsck -f /dev/mmcblk0p2  # 请根据实际分区调整
+   ```
+
+6. **降低Docker资源使用**
+
+   修改docker-compose.yml文件，添加资源限制：
+   
+   ```yaml
+   services:
+     web:
+       # 其他配置...
+       deploy:
+         resources:
+           limits:
+             cpus: '0.5'
+             memory: 512M
+   ```
+
+7. **使用稳定的存储介质**
+
+   考虑使用高质量的SD卡或外接SSD/USB存储，并将Docker数据目录移至该存储设备：
+   
+   ```bash
+   # 停止Docker
+   sudo systemctl stop docker
+   
+   # 创建新的Docker数据目录
+   sudo mkdir -p /mnt/external/docker
+   
+   # 配置Docker使用新目录
+   sudo tee /etc/docker/daemon.json <<-'EOF'
+   {
+     "registry-mirrors": ["https://mirror.baidubce.com"],
+     "data-root": "/mnt/external/docker"
+   }
+   EOF
+   
+   # 启动Docker
+   sudo systemctl start docker
+   ``` 
+
+## 树莓派5部署替代方案
+
+如果您在树莓派5上使用Docker遇到困难，以下是一些更轻量级的替代部署方案：
+
+### 1. 直接部署（无容器）
+
+直接在树莓派上安装Python和依赖项，是最简单且资源消耗最少的方法：
+
+```bash
+# 安装Python和依赖
+sudo apt-get update
+sudo apt-get install -y python3 python3-pip python3-venv
+
+# 克隆项目
+git clone https://github.com/yourusername/pro_office.git
+cd pro_office
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 初始化数据库
+flask db upgrade
+
+# 使用Gunicorn运行（生产环境）
+pip install gunicorn
+gunicorn -w 2 -b 0.0.0.0:5000 wsgi:app
+```
+
+设置开机自启动：
+```bash
+sudo nano /etc/systemd/system/pro-office.service
+```
+
+添加以下内容：
+```
+[Unit]
+Description=Pro Office System
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/pro_office
+ExecStart=/home/pi/pro_office/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启用服务：
+```bash
+sudo systemctl enable pro-office.service
+sudo systemctl start pro-office.service
+```
+
+### 2. 使用Supervisor管理Python应用
+
+Supervisor是一个进程控制系统，可以更可靠地管理应用程序：
+
+```bash
+# 安装Supervisor
+sudo apt-get install -y supervisor
+
+# 创建配置文件
+sudo nano /etc/supervisor/conf.d/pro-office.conf
+```
+
+添加以下内容：
+```
+[program:pro-office]
+command=/home/pi/pro_office/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 wsgi:app
+directory=/home/pi/pro_office
+user=pi
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+```
+
+启用并启动服务：
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start pro-office
+```
+
+### 3. 使用Nginx + uWSGI
+
+这种组合提供了更好的性能和可靠性。以下是详细的部署步骤：
+
+### 1. 安装必要的软件包
+
+```bash
+# 更新软件包列表
+sudo apt-get update
+
+# 安装Nginx、Python开发包和其他必要工具
+sudo apt-get install -y nginx python3-dev python3-pip python3-venv build-essential
+```
+
+### 2. 创建Python虚拟环境
+
+```bash
+# 克隆项目代码
+git clone https://github.com/yourusername/pro_office.git
+cd pro_office
+
+# 创建并激活虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装项目依赖
+pip install -r requirements.txt
+
+# 安装uWSGI
+pip install uwsgi
+```
+
+### 3. 测试uWSGI是否能正确运行Flask应用
+
+```bash
+# 直接使用uWSGI运行应用进行测试
+uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi:app
+```
+
+如果能在浏览器中访问`http://树莓派IP:5000`并看到应用，说明uWSGI配置正确。按Ctrl+C停止测试服务器。
+
+### 4. 创建uWSGI配置文件
+
+```bash
+# 在项目目录中创建uwsgi.ini文件
+nano ~/pro_office/uwsgi.ini
+```
+
+添加以下内容：
+
+```ini
+[uwsgi]
+# 基本配置
+module = wsgi:app
+master = true
+processes = 2
+threads = 2
+
+# 套接字配置
+socket = /tmp/pro-office.sock
+chmod-socket = 666
+vacuum = true
+die-on-term = true
+
+# 日志配置
+logto = /var/log/uwsgi/%n.log
+
+# 性能优化
+harakiri = 30
+max-requests = 5000
+buffer-size = 32768
+
+# 树莓派资源优化
+cheaper = 1
+cheaper-initial = 1
+cheaper-step = 1
+cheaper-algo = spare
+cheaper-overload = 5
+```
+
+### 5. 创建系统服务文件
+
+```bash
+# 创建uWSGI服务文件
+sudo nano /etc/systemd/system/pro-office.service
+```
+
+添加以下内容：
+
+```
+[Unit]
+Description=uWSGI instance to serve Pro Office
+After=network.target
+
+[Service]
+User=pi
+Group=www-data
+WorkingDirectory=/home/pi/pro_office
+Environment="PATH=/home/pi/pro_office/venv/bin"
+ExecStart=/home/pi/pro_office/venv/bin/uwsgi --ini uwsgi.ini
+Restart=always
+KillSignal=SIGQUIT
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6. 创建Nginx配置文件
+
+```bash
+# 创建Nginx站点配置
+sudo nano /etc/nginx/sites-available/pro-office
+```
+
+添加以下内容：
+
+```
+server {
+    listen 80;
+    server_name _;  # 替换为您的域名或保留为通配符
+
+    # 静态文件配置
+    location /static {
+        alias /home/pi/pro_office/app/static;
+    }
+
+    # 主应用配置
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:/tmp/pro-office.sock;
+        uwsgi_read_timeout 300s;
+        uwsgi_send_timeout 300s;
+        
+        # 缓存配置
+        uwsgi_buffering on;
+        uwsgi_buffers 8 16k;
+        uwsgi_buffer_size 32k;
+    }
+
+    # 日志配置
+    access_log /var/log/nginx/pro-office-access.log;
+    error_log /var/log/nginx/pro-office-error.log;
+}
+```
+
+### 7. 启用Nginx配置并创建日志目录
+
+```bash
+# 创建uWSGI日志目录
+sudo mkdir -p /var/log/uwsgi
+sudo chown pi:pi /var/log/uwsgi
+
+# 启用Nginx站点配置
+sudo ln -s /etc/nginx/sites-available/pro-office /etc/nginx/sites-enabled
+sudo rm -f /etc/nginx/sites-enabled/default  # 移除默认站点（可选）
+
+# 测试Nginx配置
+sudo nginx -t
+```
+
+### 8. 启动服务
+
+```bash
+# 重新加载systemd配置
+sudo systemctl daemon-reload
+
+# 启动uWSGI服务
+sudo systemctl start pro-office
+sudo systemctl enable pro-office
+
+# 重启Nginx
+sudo systemctl restart nginx
+```
+
+### 9. 验证部署
+
+访问`http://树莓派IP`，您应该能看到应用正常运行。
+
+### 10. 监控和故障排除
+
+```bash
+# 检查uWSGI服务状态
+sudo systemctl status pro-office
+
+# 查看uWSGI日志
+sudo tail -f /var/log/uwsgi/pro-office.log
+
+# 查看Nginx访问日志
+sudo tail -f /var/log/nginx/pro-office-access.log
+
+# 查看Nginx错误日志
+sudo tail -f /var/log/nginx/pro-office-error.log
+```
+
+### 11. 性能优化
+
+#### 启用Nginx缓存
+
+```bash
+sudo nano /etc/nginx/sites-available/pro-office
+```
+
+添加以下内容到server块中：
+
+```
+# 静态文件缓存
+location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+    expires 30d;
+    add_header Cache-Control "public, no-transform";
+}
+```
+
+#### 优化Nginx工作进程
+
+```bash
+sudo nano /etc/nginx/nginx.conf
+```
+
+修改为：
+
+```
+worker_processes 2;  # 设置为树莓派5的CPU核心数
+worker_connections 1024;
+```
+
+#### 重启Nginx应用更改
+
+```bash
+sudo systemctl restart nginx
+```
+
+### 12. 安全加固
+
+#### 配置防火墙
+
+```bash
+# 安装UFW
+sudo apt-get install -y ufw
+
+# 配置防火墙规则
+sudo ufw allow ssh
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# 启用防火墙
+sudo ufw enable
+```
+
+#### 设置HTTPS（可选）
+
+```bash
+# 安装Certbot
+sudo apt-get install -y certbot python3-certbot-nginx
+
+# 获取并配置SSL证书
+sudo certbot --nginx -d yourdomain.com
+```
+
+### 13. 自动备份数据库
+
+创建备份脚本：
+
+```bash
+sudo nano /home/pi/backup-db.sh
+```
+
+添加以下内容：
+
+```bash
+#!/bin/bash
+DATE=$(date +%Y%m%d%H%M%S)
+BACKUP_DIR="/home/pi/backups"
+
+mkdir -p $BACKUP_DIR
+cp /home/pi/pro_office/database/app.db $BACKUP_DIR/app.db.$DATE
+
+# 保留最近10个备份
+ls -t $BACKUP_DIR/app.db.* | tail -n +11 | xargs -r rm
+```
+
+设置权限并创建定时任务：
+
+```bash
+chmod +x /home/pi/backup-db.sh
+crontab -e
+```
+
+添加以下内容：
+
+```
+0 2 * * * /home/pi/backup-db.sh
+```
+
+这个详细指南涵盖了使用Nginx + uWSGI在树莓派5上部署Flask应用的所有关键步骤，包括性能优化、安全加固和自动备份。这种部署方式比Docker更轻量级，更适合树莓派的资源限制，同时提供了生产级别的性能和可靠性。 
