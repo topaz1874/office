@@ -235,4 +235,144 @@
 4. **电压监控**：访问`/mqtt/voltage`页面，查看实时电压数据
    - 支持音量柱动态显示
    - 支持鼠标滚轮缩放
-   - 根据电压值大小自动变色（低值红色-中值黄色-高值绿色） 
+   - 根据电压值大小自动变色（低值红色-中值黄色-高值绿色）
+
+## 树莓派部署指南
+
+要在局域网的树莓派上部署本系统，请按照以下步骤操作：
+
+### 1. 准备工作
+
+- 一台安装了Raspberry Pi OS的树莓派（建议使用Raspberry Pi 4，至少2GB内存）
+- 树莓派已连接到局域网并能访问互联网
+- 树莓派上已安装Docker和Docker Compose
+
+### 2. 安装Docker和Docker Compose
+
+如果尚未安装Docker和Docker Compose，请执行以下命令：
+
+```bash
+# 安装Docker
+curl -sSL https://get.docker.com | sh
+
+# 将当前用户添加到docker组（免sudo运行docker）
+sudo usermod -aG docker $USER
+
+# 安装Docker Compose
+sudo apt-get update
+sudo apt-get install -y python3-pip
+sudo pip3 install docker-compose
+```
+
+安装完成后重启树莓派：
+
+```bash
+sudo reboot
+```
+
+### 3. 配置Git国内镜像源
+
+为了加快代码克隆和更新速度，建议配置Git国内镜像源：
+
+```bash
+# 全局配置使用gitee镜像
+git config --global url."https://gitee.com/".insteadOf "https://github.com/"
+
+# 或者配置特定仓库使用国内镜像
+# 中国科学技术大学镜像
+git config --global url."https://mirrors.ustc.edu.cn/".insteadOf "https://"
+
+# 清华大学镜像
+# git config --global url."https://mirrors.tuna.tsinghua.edu.cn/git/".insteadOf "https://"
+```
+
+您也可以直接使用国内Git平台（如Gitee）上的项目镜像：
+
+```bash
+# 使用Gitee上的镜像仓库
+git clone https://gitee.com/yourusername/pro_office.git
+```
+
+### 4. 获取项目代码
+
+```bash
+# 克隆项目代码
+git clone https://github.com/yourusername/pro_office.git
+cd pro_office
+```
+
+### 5. 修改MQTT配置
+
+编辑`app/blueprints/mqtt/routes.py`文件，将MQTT代理地址修改为您局域网中MQTT服务器的地址：
+
+```python
+# MQTT配置
+MQTT_BROKER = "192.168.1.xxx"  # 替换为您的MQTT服务器IP
+MQTT_PORT = 1883
+MQTT_TOPIC = "voltage"
+```
+
+### 6. 构建和启动容器
+
+```bash
+# 构建并启动容器
+docker-compose up -d
+```
+
+### 7. 初始化数据库
+
+```bash
+# 初始化数据库
+docker-compose exec web python /app/init_db.py
+```
+
+### 8. 访问系统
+
+现在您可以通过树莓派的IP地址和端口访问系统：
+
+```
+http://树莓派IP:5000
+```
+
+例如：`http://192.168.1.xxx:5000`
+
+### 9. 设置开机自启动
+
+创建systemd服务文件：
+
+```bash
+sudo nano /etc/systemd/system/pro-office.service
+```
+
+添加以下内容：
+
+```
+[Unit]
+Description=Pro Office System
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/pro_office
+ExecStart=/usr/local/bin/docker-compose up
+ExecStop=/usr/local/bin/docker-compose down
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启用服务：
+
+```bash
+sudo systemctl enable pro-office.service
+sudo systemctl start pro-office.service
+```
+
+### 10. 故障排除
+
+- 如果无法访问系统，请检查树莓派防火墙设置，确保5000端口已开放
+- 检查Docker容器状态：`docker-compose ps`
+- 查看日志：`docker-compose logs -f web`
+- 如果树莓派资源有限，可以修改`docker-compose.yml`文件，减少容器的资源限制 
